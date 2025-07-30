@@ -44,7 +44,7 @@ IZO Captain works in harmony with the full suite of IZO apps:
 ## 👨‍💼 Developed By
 
 This application is proudly developed and maintained by **Mohammad Naif Almowel**.  
-For support, contact: `eng.naif@gulfskygroup.com`
+For support, contact: `naif.almowel@gmail.com`
 
 ---
 
