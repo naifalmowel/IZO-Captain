@@ -1,0 +1,161 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:izo_captain/modules/tables/dien_in/widget/hall_widget.dart';
+import 'package:lottie/lottie.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../../controllers/info_controllers.dart';
+import '../../../controllers/user_controller.dart';
+import '../../../models/hall_model.dart';
+import '../../../utils/Theme/colors.dart';
+import '../../../utils/constant.dart';
+import '../../../utils/scaled_dimensions.dart';
+import '../../home_view/header_widget.dart';
+import '../../login/login.dart';
+
+class TablesView extends StatefulWidget {
+  const TablesView({super.key});
+
+  @override
+  State<TablesView> createState() => _TablesViewState();
+}
+
+class _TablesViewState extends State<TablesView> {
+  final infoController = Get.find<InfoController>();
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      onPopInvoked: (_)async{
+        showDialog(
+          context: context,
+          builder: (context) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: SingleChildScrollView(
+                child: AlertDialog(
+                  alignment: Alignment.topCenter,
+                  backgroundColor: Colors.white.withOpacity(0.9),
+                  actionsPadding: const EdgeInsets.all(20),
+                  shape: const OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(30))),
+                  title: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Lottie.asset('lottie/question.json',
+                              height: 200, width: 200),
+                          Text('Are You Sure To Logout ?'.tr,
+                              textAlign: TextAlign.center),
+                        ],
+                      )),
+                  content:  Text(
+                      'You Will Not Be Able To Return To This Page'.tr,
+                      textAlign: TextAlign.center),
+                  actions: [
+                    ElevatedButton(
+                        onPressed: () {
+                          Get.back();
+                        },
+                        style: ButtonStyle(
+                            backgroundColor: MaterialStateColor.resolveWith(
+                                    (states) => Colors.redAccent)),
+                        child:  Padding(
+                          padding: const EdgeInsets.only(left: 20, right: 20),
+                          child: Text('No'.tr,style: const TextStyle(color: Colors.white , fontWeight: FontWeight.w600),),
+                        )),
+                    ElevatedButton(
+                        onPressed: () async{
+                          try{
+                            bool result = await Get.find<UserController>().logoutUser();
+                            if(result){
+                              if (!context.mounted) return;
+                              ConstantApp.showSnakeBarInfo(context, 'Logout Done !!'.tr);
+                            }
+                          }catch(e){
+                            print(e);
+                          }
+                          Get.find<SharedPreferences>().remove('name');
+                          Get.back();
+                          Get.offAll(()=> const LoginPage());
+                        },
+                        style: ButtonStyle(
+                            backgroundColor: MaterialStateColor.resolveWith(
+                                    (states) => primaryColor.withOpacity(0.8))),
+                        child:  Padding(
+                          padding: const EdgeInsets.only(left: 20 , right: 20),
+                          child: Text('Yes'.tr ,style: const TextStyle(color: Colors.white , fontWeight: FontWeight.w600),),
+                        )),
+                  ],
+                ),
+              ),
+            );
+          },
+          barrierDismissible: true,
+        );
+      },
+      child: SafeArea(
+        child: Scaffold(
+          body: Container(
+            width: ConstantApp.getWidth(context),
+            height: ConstantApp.getHeight(context),
+            decoration: BoxDecoration(
+              gradient: backgroundGradient,
+            ),
+            child: Obx(
+              () => RefreshIndicator(
+                onRefresh: () async {
+                  await Get.find<InfoController>().getAllInformation();
+                },
+                child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                        horizontal: ScaledDimensions.getScaledWidth(px: 10),
+                        vertical: ScaledDimensions.getScaledHeight(px: 15)),
+                    child: Column(
+                      children: [
+                        const HeaderWidget(),
+                        infoController.halls.where((p0) => p0.id > 0).toList().isEmpty
+                            ?
+                           Padding(
+                            padding: const EdgeInsets.only(top: 100),
+                            child: Text(
+                              'NO TABLES FOUND OR NO PERMISSION !!'.tr,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                  fontSize: 20,
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          )
+
+                            :  Column(
+                          children: infoController.halls
+                                  .where((p0) => p0.id > 0)
+                                  .toList()
+                                  .map((element) {
+                                  HallModel? hall = infoController.halls
+                                      .firstWhereOrNull(
+                                          (e) => element.id == e.id);
+                                  List<int> usersId = [];
+                                  hall?.users?.forEach((element) {
+                                    usersId.add(int.parse("${element ?? 0}"));
+                                  });
+                                  int userId = Get.find<SharedPreferences>()
+                                          .getInt('userId') ??
+                                      0;
+                                  return usersId.contains(userId)
+                                      ? HallWidget(
+                                          number: element.name,
+                                          tables: element.tables)
+                                      : const SizedBox();
+                                }).toList(),
+                        ),
+                      ],
+                    )),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
